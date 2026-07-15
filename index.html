@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Senthil Kumaran Tea Shop — Billing</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍵</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rokkitt:wght@600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root{
+    --ink:#241A12;
+    --brass:#C08A2E;
+    --brass-dark:#96691E;
+    --paper:#FBF5EA;
+    --card:#FFFFFF;
+    --maroon:#8B3A3A;
+    --green-ok:#4C7A57;
+    --line:#E4D9C4;
+    --shadow: 0 2px 10px rgba(36,26,18,0.08);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    padding-bottom:78px;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;}
+  button{font-family:inherit;}
+
+  /* ===== Header — chalkboard signboard ===== */
+  header{
+    background:
+      radial-gradient(120% 180% at 10% -20%, rgba(192,138,46,0.18), transparent 60%),
+      linear-gradient(180deg,#2E2115 0%, var(--ink) 100%);
+    color:var(--paper);
+    padding:28px 20px 22px;
+    position:relative;
+    border-bottom:4px solid var(--brass);
+  }
+  header .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--brass);
+    margin-bottom:6px;
+  }
+  header h1{
+    font-family:'Rokkitt',serif;
+    font-weight:800;
+    font-size:26px;
+    line-height:1.15;
+    margin:0 0 4px;
+    letter-spacing:.01em;
+  }
+  header p.tagline{
+    margin:0;
+    font-size:13.5px;
+    color:#D8CBB4;
+    font-style:italic;
+  }
+  header .today-stats{
+    margin-top:16px;
+    display:flex;
+    gap:10px;
+  }
+  .stat-chip{
+    background:rgba(251,245,234,0.07);
+    border:1px solid rgba(192,138,46,0.35);
+    border-radius:8px;
+    padding:8px 12px;
+    flex:1;
+  }
+  .stat-chip .n{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:17px;
+    font-weight:600;
+    color:var(--brass);
+    display:block;
+  }
+  .stat-chip .l{
+    font-size:10.5px;
+    color:#B9AC93;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+  }
+
+  main{max-width:640px; margin:0 auto; padding:18px 16px 100px;}
+  .tab-section{display:none;}
+  .tab-section.active{display:block;}
+
+  h2.section-title{
+    font-family:'Rokkitt',serif;
+    font-size:18px;
+    font-weight:700;
+    margin:22px 0 10px;
+    color:var(--ink);
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  h2.section-title:first-child{margin-top:0;}
+  h2.section-title::after{
+    content:'';
+    flex:1;
+    height:1px;
+    background:var(--line);
+  }
+
+  /* ===== Item cards (Bill tab) ===== */
+  .item-grid{display:flex; flex-direction:column; gap:10px;}
+  .item-card{
+    background:var(--card);
+    border-radius:12px;
+    padding:13px 14px;
+    box-shadow:var(--shadow);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    border:1px solid transparent;
+    transition:border-color .15s ease, transform .1s ease;
+  }
+  .item-card.has-qty{border-color:var(--brass);}
+  .item-info{flex:1; min-width:0;}
+  .item-info .name{font-weight:600; font-size:15px;}
+  .item-info .meta{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    color:#7A6E5C;
+    margin-top:2px;
+  }
+  .item-info .meta .low{color:var(--maroon); font-weight:600;}
+  .qty-stepper{
+    display:flex;
+    align-items:center;
+    gap:0;
+    background:var(--paper);
+    border-radius:9px;
+    border:1px solid var(--line);
+    overflow:hidden;
+  }
+  .qty-stepper button{
+    width:34px; height:34px;
+    border:none;
+    background:transparent;
+    font-size:18px;
+    color:var(--brass-dark);
+    cursor:pointer;
+    font-weight:600;
+  }
+  .qty-stepper button:active{background:rgba(192,138,46,0.15);}
+  .qty-stepper .qty-val{
+    min-width:26px;
+    text-align:center;
+    font-family:'IBM Plex Mono',monospace;
+    font-weight:600;
+    font-size:14px;
+  }
+
+  /* ===== Sticky bill footer ===== */
+  #bill-footer{
+    position:fixed;
+    left:0; right:0; bottom:64px;
+    background:var(--ink);
+    color:var(--paper);
+    padding:12px 16px;
+    display:none;
+    align-items:center;
+    justify-content:space-between;
+    z-index:40;
+    box-shadow:0 -4px 14px rgba(0,0,0,0.18);
+  }
+  #bill-footer.show{display:flex;}
+  #bill-footer .total-block .l{font-size:10.5px; color:#B9AC93; text-transform:uppercase; letter-spacing:.06em;}
+  #bill-footer .total-block .n{font-family:'IBM Plex Mono',monospace; font-size:19px; font-weight:700; color:var(--brass);}
+  #bill-footer button{
+    background:var(--brass);
+    color:var(--ink);
+    border:none;
+    padding:11px 18px;
+    border-radius:9px;
+    font-weight:700;
+    font-size:14px;
+    cursor:pointer;
+  }
+  #bill-footer button:active{background:var(--brass-dark);}
+
+  /* ===== Stock tab ===== */
+  .stock-row{
+    background:var(--card);
+    border-radius:12px;
+    padding:12px 14px;
+    box-shadow:var(--shadow);
+    margin-bottom:10px;
+  }
+  .stock-row-top{display:flex; justify-content:space-between; align-items:center; gap:10px;}
+  .stock-row .name{font-weight:600; font-size:15px;}
+  .stock-row .cat{font-size:11px; color:#9C8E76; text-transform:uppercase; letter-spacing:.05em;}
+  .stock-row-controls{display:flex; align-items:center; gap:12px; margin-top:10px; flex-wrap:wrap;}
+  .field-mini{display:flex; flex-direction:column; gap:3px;}
+  .field-mini label{font-size:10px; color:#9C8E76; text-transform:uppercase; letter-spacing:.05em;}
+  .field-mini input{
+    font-family:'IBM Plex Mono',monospace;
+    border:1px solid var(--line);
+    border-radius:7px;
+    padding:6px 8px;
+    width:78px;
+    font-size:13.5px;
+    background:var(--paper);
+    color:var(--ink);
+  }
+  .restock-btns{display:flex; gap:6px;}
+  .restock-btns button{
+    border:1px solid var(--line);
+    background:var(--paper);
+    border-radius:7px;
+    padding:6px 10px;
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--brass-dark);
+    cursor:pointer;
+  }
+  .restock-btns button.minus{color:var(--maroon);}
+  .delete-item{
+    border:none; background:none; color:#B0A48D; font-size:12px; cursor:pointer; text-decoration:underline; margin-left:auto;
+  }
+  .stock-badge{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    padding:3px 8px;
+    border-radius:20px;
+    font-weight:600;
+  }
+  .stock-badge.ok{background:rgba(76,122,87,0.12); color:var(--green-ok);}
+  .stock-badge.low{background:rgba(139,58,58,0.12); color:var(--maroon);}
+
+  .add-item-form{
+    background:var(--card);
+    border:1px dashed var(--brass);
+    border-radius:12px;
+    padding:14px;
+    margin-top:14px;
+  }
+  .add-item-form h3{margin:0 0 10px; font-family:'Rokkitt',serif; font-size:15px;}
+  .add-item-form .grid{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  .add-item-form input{
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:9px 10px;
+    font-size:14px;
+    font-family:'Inter',sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    width:100%;
+  }
+  .add-item-form button{
+    margin-top:10px;
+    width:100%;
+    background:var(--brass);
+    border:none;
+    padding:10px;
+    border-radius:8px;
+    font-weight:700;
+    color:var(--ink);
+    cursor:pointer;
+  }
+
+  /* ===== Shop tab ===== */
+  .shop-card{
+    background:var(--card);
+    border-radius:12px;
+    padding:16px;
+    box-shadow:var(--shadow);
+    margin-bottom:12px;
+  }
+  .shop-card .row{display:flex; gap:10px; align-items:flex-start; margin-bottom:10px;}
+  .shop-card .row:last-child{margin-bottom:0;}
+  .shop-card .icon{font-size:17px; width:22px; text-align:center; flex-shrink:0;}
+  .shop-card .txt{font-size:14px; line-height:1.45; color:#4A3F30;}
+  .wa-btn{
+    display:inline-flex; align-items:center; gap:8px;
+    background:#25D366; color:#fff; text-decoration:none;
+    padding:11px 16px; border-radius:9px; font-weight:600; font-size:14px;
+    margin-top:4px;
+  }
+  .export-btn{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    width:100%;
+    background:var(--ink); color:var(--paper);
+    border:none; padding:13px; border-radius:10px;
+    font-weight:700; font-size:14.5px; cursor:pointer;
+    font-family:'IBM Plex Mono',monospace;
+  }
+  .export-btn:active{background:#3a2c1c;}
+  .history-list{margin-top:10px;}
+  .history-row{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:9px 0; border-bottom:1px solid var(--line);
+    font-size:13.5px;
+  }
+  .history-row:last-child{border-bottom:none;}
+  .history-row .id{font-family:'IBM Plex Mono',monospace; color:#9C8E76; font-size:12px;}
+  .history-row .amt{font-family:'IBM Plex Mono',monospace; font-weight:700; color:var(--brass-dark);}
+  .empty-note{color:#A79A82; font-size:13px; text-align:center; padding:14px 0;}
+
+  /* ===== Bottom nav ===== */
+  nav#tabbar{
+    position:fixed; bottom:0; left:0; right:0;
+    background:var(--card);
+    border-top:1px solid var(--line);
+    display:flex;
+    z-index:50;
+    box-shadow:0 -2px 8px rgba(0,0,0,0.05);
+  }
+  nav#tabbar button{
+    flex:1;
+    background:none;
+    border:none;
+    padding:10px 4px 9px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:3px;
+    color:#A79A82;
+    cursor:pointer;
+    font-size:11px;
+    font-weight:600;
+  }
+  nav#tabbar button .ic{font-size:19px;}
+  nav#tabbar button.active{color:var(--brass-dark);}
+
+  /* ===== Receipt modal ===== */
+  #receipt-overlay{
+    position:fixed; inset:0;
+    background:rgba(36,26,18,0.55);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:100;
+    padding:20px;
+  }
+  #receipt-overlay.show{display:flex;}
+  .receipt{
+    background:#fff;
+    width:100%;
+    max-width:340px;
+    max-height:85vh;
+    overflow-y:auto;
+    padding:22px 20px;
+    font-family:'IBM Plex Mono',monospace;
+    color:var(--ink);
+    position:relative;
+    background-image:
+      radial-gradient(circle at 4px 4px, transparent 4px, #fff 4.5px);
+    background-size:12px 1px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.3);
+    border-radius:2px;
+  }
+  .receipt::before, .receipt::after{
+    content:'';
+    position:absolute; left:0; right:0; height:10px;
+    background:
+      radial-gradient(circle at 6px 5px, rgba(36,26,18,0.55) 5px, transparent 5.5px) repeat-x;
+    background-size:12px 10px;
+  }
+  .receipt::before{top:-5px;}
+  .receipt::after{bottom:-5px; transform:rotate(180deg);}
+  .receipt h3{
+    font-family:'Rokkitt',serif;
+    text-align:center;
+    font-size:16px;
+    margin:4px 0 2px;
+  }
+  .receipt .sub{text-align:center; font-size:11px; color:#8A7D66; margin-bottom:12px;}
+  .receipt .divider{border-top:1px dashed #C9BC9F; margin:10px 0;}
+  .receipt .r-row{display:flex; justify-content:space-between; font-size:13px; margin-bottom:5px;}
+  .receipt .r-total{display:flex; justify-content:space-between; font-size:16px; font-weight:700; margin-top:8px;}
+  .receipt .r-foot{text-align:center; font-size:11px; color:#9C8E76; margin-top:14px;}
+  .receipt-close{
+    margin-top:16px; width:100%;
+    background:var(--brass); color:var(--ink); border:none;
+    padding:11px; border-radius:8px; font-weight:700; font-size:14px;
+    font-family:'Inter',sans-serif; cursor:pointer;
+  }
+  .receipt-pay{
+    text-align:center;
+    margin-top:14px;
+    padding-top:14px;
+    border-top:1px dashed #C9BC9F;
+  }
+  .receipt-pay .pay-label{
+    font-family:'Inter',sans-serif;
+    font-size:11.5px;
+    color:#8A7D66;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    margin-bottom:8px;
+  }
+  .receipt-pay #qr-box{
+    display:inline-block;
+    padding:8px;
+    background:#fff;
+    border:1px solid #E4D9C4;
+    border-radius:8px;
+  }
+  .receipt-pay .upi-id{
+    font-size:11px;
+    color:#9C8E76;
+    margin-top:6px;
+    word-break:break-all;
+  }
+
+  footer.app-footer{
+    text-align:center;
+    font-size:11.5px;
+    color:#B0A48D;
+    padding:18px 0 6px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;}
+  }
+
+  /* ===== Auth screens ===== */
+  #auth-shell{
+    position:fixed; inset:0;
+    background:
+      radial-gradient(120% 180% at 10% -20%, rgba(192,138,46,0.14), transparent 60%),
+      linear-gradient(180deg,#2E2115 0%, var(--ink) 100%);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    z-index:200;
+  }
+  #auth-shell.hidden{display:none;}
+  .auth-card{
+    background:var(--paper);
+    width:100%;
+    max-width:360px;
+    border-radius:16px;
+    padding:26px 22px 22px;
+    box-shadow:0 14px 40px rgba(0,0,0,0.35);
+    border-top:4px solid var(--brass);
+  }
+  .auth-card .auth-eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--brass-dark);
+    margin-bottom:4px;
+    text-align:center;
+  }
+  .auth-card h2{
+    font-family:'Rokkitt',serif;
+    font-size:20px;
+    font-weight:700;
+    margin:0 0 4px;
+    text-align:center;
+    color:var(--ink);
+  }
+  .auth-card .auth-sub{
+    text-align:center;
+    font-size:12.5px;
+    color:#8A7D66;
+    margin-bottom:18px;
+  }
+  .auth-field{margin-bottom:12px;}
+  .auth-field label{
+    display:block;
+    font-size:11px;
+    color:#8A7D66;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    margin-bottom:5px;
+  }
+  .auth-field input, .auth-field select{
+    width:100%;
+    border:1px solid var(--line);
+    border-radius:9px;
+    padding:11px 12px;
+    font-size:14.5px;
+    font-family:'Inter',sans-serif;
+    background:#fff;
+    color:var(--ink);
+  }
+  .auth-field input:focus, .auth-field select:focus{
+    outline:2px solid var(--brass);
+    outline-offset:1px;
+  }
+  .auth-remember{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:13px;
+    color:#4A3F30;
+    margin-bottom:16px;
+  }
+  .auth-remember input{width:16px; height:16px;}
+  .auth-btn{
+    width:100%;
+    background:var(--brass);
+    color:var(--ink);
+    border:none;
+    padding:12px;
+    border-radius:9px;
+    font-weight:700;
+    font-size:14.5px;
+    cursor:pointer;
+    margin-bottom:10px;
+  }
+  .auth-btn:active{background:var(--brass-dark);}
+  .auth-btn.ghost{
+    background:none;
+    border:1px solid var(--line);
+    color:var(--ink);
+  }
+  .auth-link{
+    display:block;
+    text-align:center;
+    font-size:13px;
+    color:var(--brass-dark);
+    text-decoration:underline;
+    background:none;
+    border:none;
+    cursor:pointer;
+    padding:6px;
+    width:100%;
+    font-family:'Inter',sans-serif;
+  }
+  .auth-error{
+    background:rgba(139,58,58,0.1);
+    color:var(--maroon);
+    border-radius:8px;
+    padding:9px 11px;
+    font-size:13px;
+    margin-bottom:12px;
+    display:none;
+  }
+  .auth-error.show{display:block;}
+  .auth-success{
+    background:rgba(76,122,87,0.1);
+    color:var(--green-ok);
+    border-radius:8px;
+    padding:9px 11px;
+    font-size:13px;
+    margin-bottom:12px;
+    display:none;
+  }
+  .auth-success.show{display:block;}
+  .auth-note{
+    font-size:11.5px;
+    color:#A79A82;
+    text-align:center;
+    margin-top:14px;
+    line-height:1.5;
+  }
+  .logout-btn{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    width:100%;
+    background:none;
+    border:1px solid var(--maroon);
+    color:var(--maroon);
+    padding:12px; border-radius:10px;
+    font-weight:700; font-size:13.5px; cursor:pointer;
+    margin-top:6px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== AUTH SCREENS ===== -->
+<div id="auth-shell">
+  <div class="auth-card" id="auth-card"></div>
+</div>
+
+<!-- ===== MAIN APP (hidden until logged in) ===== -->
+<div id="app-shell" style="display:none;">
+
+<header>
+  <div class="eyebrow">Billing &amp; Inventory</div>
+  <h1>Senthil Kumaran<br>Tea Shop</h1>
+  <p class="tagline">Fresh cups, fair counts, every day.</p>
+  <div class="today-stats" id="today-stats"></div>
+</header>
+
+<main>
+
+  <!-- BILL TAB -->
+  <section class="tab-section active" id="tab-bill">
+    <h2 class="section-title">Take a Bill</h2>
+    <div class="item-grid" id="bill-item-list"></div>
+  </section>
+
+  <!-- STOCK TAB -->
+  <section class="tab-section" id="tab-stock">
+    <h2 class="section-title">Inventory</h2>
+    <div id="stock-list"></div>
+
+    <div class="add-item-form">
+      <h3>+ Add new item</h3>
+      <div class="grid">
+        <input type="text" id="new-name" placeholder="Item name">
+        <input type="text" id="new-cat" placeholder="Category (e.g. Snacks)">
+        <input type="number" id="new-price" placeholder="Price (₹)" min="0">
+        <input type="text" id="new-unit" placeholder="Unit (cups, pieces...)">
+      </div>
+      <button onclick="addItem()">Add Item</button>
+    </div>
+  </section>
+
+  <!-- SHOP TAB -->
+  <section class="tab-section" id="tab-shop">
+    <h2 class="section-title">Shop Details</h2>
+    <div class="shop-card">
+      <div class="row">
+        <div class="icon">📍</div>
+        <div class="txt">No. 54, ABC Building, Kamaraj Nagar, Avadi, Chennai – 600071</div>
+      </div>
+      <div class="row">
+        <div class="icon">💬</div>
+        <div class="txt">
+          78532 84537<br>
+          <a class="wa-btn" href="https://wa.me/917853284537" target="_blank" rel="noopener">Chat on WhatsApp</a>
+        </div>
+      </div>
+      <div class="row">
+        <div class="icon">💳</div>
+        <div class="txt">UPI: honeysdot@indianbank<br><span style="color:#9C8E76; font-size:12.5px;">A payment QR with the exact bill amount appears automatically on every receipt.</span></div>
+      </div>
+    </div>
+
+    <h2 class="section-title">Export</h2>
+    <button class="export-btn" onclick="exportCSV()">⬇ Export Bill History (CSV)</button>
+
+    <h2 class="section-title">Recent Bills</h2>
+    <div class="shop-card">
+      <div class="history-list" id="history-list"></div>
+    </div>
+
+    <h2 class="section-title">Account</h2>
+    <button class="logout-btn" onclick="logout()">🔒 Log Out</button>
+  </section>
+
+</main>
+
+<div id="bill-footer">
+  <div class="total-block">
+    <span class="l">Current Bill</span>
+    <span class="n" id="footer-total">₹0</span>
+  </div>
+  <button onclick="generateBill()">Generate Bill →</button>
+</div>
+
+<nav id="tabbar">
+  <button class="active" data-tab="bill" onclick="showTab('bill')"><span class="ic">🧾</span>Bill</button>
+  <button data-tab="stock" onclick="showTab('stock')"><span class="ic">📦</span>Stock</button>
+  <button data-tab="shop" onclick="showTab('shop')"><span class="ic">🏪</span>Shop</button>
+</nav>
+
+<div id="receipt-overlay">
+  <div class="receipt" id="receipt-content"></div>
+</div>
+
+</div><!-- /#app-shell -->
+
+<script>
+/* ============ Storage keys ============ */
+const K_ITEMS = 'skts_items';
+const K_BILLS = 'skts_bills';
+const K_AUTH = 'skts_auth';
+const K_REMEMBER = 'skts_remember';
+
+/* ============ Payment config ============ */
+const UPI_ID = 'honeysdot@indianbank';
+const PAYEE_NAME = 'Senthil Kumaran Tea Shop';
+
+/* ============ Auth (client-side lock — see note below) ============ */
+/*
+  IMPORTANT HONESTY NOTE (read this before relying on it):
+  This is a static site with no server, so this login screen is a
+  DETERRENT, not real security. Anyone who opens the browser's dev
+  tools can read localStorage or edit this JS to bypass it. It stops
+  casual visitors from opening the app, but it will not stop someone
+  who deliberately wants to break in. Do not store anything here you
+  would be upset about a technically curious person seeing.
+*/
+function simpleHash(str){
+  // Small non-cryptographic hash, good enough to avoid storing the
+  // raw password/answer in plain text in localStorage.
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for(let i=0;i<str.length;i++){
+    const ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1>>>16), 2246822507) ^ Math.imul(h2 ^ (h2>>>13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2>>>16), 2246822507) ^ Math.imul(h1 ^ (h1>>>13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1>>>0)).toString(16);
+}
+
+function getAuth(){
+  try{
+    const raw = localStorage.getItem(K_AUTH);
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ return null; }
+}
+function saveAuth(auth){ localStorage.setItem(K_AUTH, JSON.stringify(auth)); }
+
+function isLoggedIn(){
+  return localStorage.getItem(K_REMEMBER) === '1' || sessionStorage.getItem(K_REMEMBER) === '1';
+}
+function setLoggedIn(remember){
+  if(remember) localStorage.setItem(K_REMEMBER, '1');
+  else sessionStorage.setItem(K_REMEMBER, '1');
+}
+function logout(){
+  localStorage.removeItem(K_REMEMBER);
+  sessionStorage.removeItem(K_REMEMBER);
+  document.getElementById('app-shell').style.display = 'none';
+  document.getElementById('auth-shell').classList.remove('hidden');
+  const auth = getAuth();
+  if(auth) renderLoginView(); else renderSetupView();
+}
+
+function enterApp(){
+  document.getElementById('auth-shell').classList.add('hidden');
+  document.getElementById('app-shell').style.display = '';
+}
+
+/* ---- Setup screen (first run: create username/password/security Q&A) ---- */
+function renderSetupView(){
+  const card = document.getElementById('auth-card');
+  card.innerHTML = `
+    <div class="auth-eyebrow">First-time setup</div>
+    <h2>Create Shop Login</h2>
+    <div class="auth-sub">Set a username &amp; password to protect this app.</div>
+    <div class="auth-error" id="setup-error"></div>
+    <div class="auth-field">
+      <label>Username</label>
+      <input type="text" id="setup-username" autocomplete="username">
+    </div>
+    <div class="auth-field">
+      <label>Password</label>
+      <input type="password" id="setup-password" autocomplete="new-password">
+    </div>
+    <div class="auth-field">
+      <label>Confirm Password</label>
+      <input type="password" id="setup-password2" autocomplete="new-password">
+    </div>
+    <div class="auth-field">
+      <label>Security Question (used to reset your password)</label>
+      <select id="setup-question">
+        <option>What is your favourite item on the menu?</option>
+        <option>What is your pet's name?</option>
+        <option>What town were you born in?</option>
+        <option>What is your mother's first name?</option>
+      </select>
+    </div>
+    <div class="auth-field">
+      <label>Answer</label>
+      <input type="text" id="setup-answer">
+    </div>
+    <button class="auth-btn" onclick="submitSetup()">Create Login</button>
+    <div class="auth-note">You'll stay logged in on this device unless you log out.</div>
+  `;
+}
+
+function submitSetup(){
+  const username = document.getElementById('setup-username').value.trim();
+  const pw = document.getElementById('setup-password').value;
+  const pw2 = document.getElementById('setup-password2').value;
+  const question = document.getElementById('setup-question').value;
+  const answer = document.getElementById('setup-answer').value.trim();
+  const errBox = document.getElementById('setup-error');
+  errBox.classList.remove('show');
+
+  if(!username || !pw || !answer){
+    errBox.textContent = 'Please fill in every field.';
+    errBox.classList.add('show');
+    return;
+  }
+  if(pw.length < 4){
+    errBox.textContent = 'Password should be at least 4 characters.';
+    errBox.classList.add('show');
+    return;
+  }
+  if(pw !== pw2){
+    errBox.textContent = 'Passwords do not match.';
+    errBox.classList.add('show');
+    return;
+  }
+
+  saveAuth({
+    username,
+    passHash: simpleHash(pw),
+    question,
+    answerHash: simpleHash(answer.toLowerCase())
+  });
+  setLoggedIn(true);
+  enterApp();
+}
+
+/* ---- Login screen ---- */
+function renderLoginView(){
+  const card = document.getElementById('auth-card');
+  const auth = getAuth();
+  card.innerHTML = `
+    <div class="auth-eyebrow">Senthil Kumaran Tea Shop</div>
+    <h2>Staff Login</h2>
+    <div class="auth-sub">Sign in to open the billing app.</div>
+    <div class="auth-error" id="login-error"></div>
+    <div class="auth-field">
+      <label>Username</label>
+      <input type="text" id="login-username" autocomplete="username" value="${auth ? escapeHtml(auth.username) : ''}">
+    </div>
+    <div class="auth-field">
+      <label>Password</label>
+      <input type="password" id="login-password" autocomplete="current-password">
+    </div>
+    <div class="auth-remember">
+      <input type="checkbox" id="login-remember" checked>
+      <label for="login-remember" style="margin:0; text-transform:none; font-size:13px; color:#4A3F30;">Remember me on this device</label>
+    </div>
+    <button class="auth-btn" onclick="submitLogin()">Log In</button>
+    <button class="auth-link" onclick="renderForgotView()">Forgot password?</button>
+  `;
+  document.getElementById('login-password').addEventListener('keydown', e=>{
+    if(e.key==='Enter') submitLogin();
+  });
+}
+
+function submitLogin(){
+  const auth = getAuth();
+  const username = document.getElementById('login-username').value.trim();
+  const pw = document.getElementById('login-password').value;
+  const remember = document.getElementById('login-remember').checked;
+  const errBox = document.getElementById('login-error');
+  errBox.classList.remove('show');
+
+  if(!auth || username !== auth.username || simpleHash(pw) !== auth.passHash){
+    errBox.textContent = 'Incorrect username or password.';
+    errBox.classList.add('show');
+    return;
+  }
+  setLoggedIn(remember);
+  enterApp();
+}
+
+/* ---- Forgot password screen ---- */
+function renderForgotView(){
+  const card = document.getElementById('auth-card');
+  const auth = getAuth();
+  if(!auth){ renderSetupView(); return; }
+  card.innerHTML = `
+    <div class="auth-eyebrow">Reset password</div>
+    <h2>Forgot Password</h2>
+    <div class="auth-sub">${escapeHtml(auth.question)}</div>
+    <div class="auth-error" id="forgot-error"></div>
+    <div class="auth-field">
+      <label>Your Answer</label>
+      <input type="text" id="forgot-answer">
+    </div>
+    <div class="auth-field">
+      <label>New Password</label>
+      <input type="password" id="forgot-newpw" autocomplete="new-password">
+    </div>
+    <div class="auth-field">
+      <label>Confirm New Password</label>
+      <input type="password" id="forgot-newpw2" autocomplete="new-password">
+    </div>
+    <button class="auth-btn" onclick="submitForgot()">Reset Password</button>
+    <button class="auth-link" onclick="renderLoginView()">Back to login</button>
+  `;
+}
+
+function submitForgot(){
+  const auth = getAuth();
+  const answer = document.getElementById('forgot-answer').value.trim().toLowerCase();
+  const newpw = document.getElementById('forgot-newpw').value;
+  const newpw2 = document.getElementById('forgot-newpw2').value;
+  const errBox = document.getElementById('forgot-error');
+  errBox.classList.remove('show');
+
+  if(simpleHash(answer) !== auth.answerHash){
+    errBox.textContent = 'That answer doesn\'t match our records.';
+    errBox.classList.add('show');
+    return;
+  }
+  if(newpw.length < 4){
+    errBox.textContent = 'Password should be at least 4 characters.';
+    errBox.classList.add('show');
+    return;
+  }
+  if(newpw !== newpw2){
+    errBox.textContent = 'Passwords do not match.';
+    errBox.classList.add('show');
+    return;
+  }
+  auth.passHash = simpleHash(newpw);
+  saveAuth(auth);
+  renderLoginView();
+  const s = document.getElementById('login-error');
+  s.className = 'auth-success show';
+  s.textContent = 'Password reset! Please log in with your new password.';
+}
+
+/* ---- Auth boot ---- */
+function bootAuth(){
+  const auth = getAuth();
+  if(isLoggedIn() && auth){
+    enterApp();
+    return;
+  }
+  if(!auth){
+    renderSetupView();
+  } else {
+    renderLoginView();
+  }
+}
+
+/* ============ Defaults ============ */
+const DEFAULT_ITEMS = [
+  {id:'tea',     name:'Tea',       category:'Beverages', price:20, stock:0, unit:'cups'},
+  {id:'coffee',  name:'Coffee',    category:'Beverages', price:25, stock:0, unit:'cups'},
+  {id:'vada',    name:'Vada',      category:'Snacks',    price:15, stock:0, unit:'pieces'},
+  {id:'vegpuff', name:'Veg Puffs', category:'Snacks',    price:25, stock:0, unit:'pieces'},
+  {id:'eggpuff', name:'Egg Puffs', category:'Snacks',    price:30, stock:0, unit:'pieces'},
+];
+
+/* ============ State ============ */
+let items = loadItems();
+let bills = loadBills();
+let currentBill = {}; // {itemId: qty}
+
+function loadItems(){
+  try{
+    const raw = localStorage.getItem(K_ITEMS);
+    if(!raw) return JSON.parse(JSON.stringify(DEFAULT_ITEMS));
+    return JSON.parse(raw);
+  }catch(e){ return JSON.parse(JSON.stringify(DEFAULT_ITEMS)); }
+}
+function saveItems(){ localStorage.setItem(K_ITEMS, JSON.stringify(items)); }
+
+function loadBills(){
+  try{
+    const raw = localStorage.getItem(K_BILLS);
+    return raw ? JSON.parse(raw) : [];
+  }catch(e){ return []; }
+}
+function saveBills(){ localStorage.setItem(K_BILLS, JSON.stringify(bills)); }
+
+/* ============ Tabs ============ */
+function showTab(name){
+  document.querySelectorAll('.tab-section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.querySelectorAll('#tabbar button').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+  if(name==='shop') renderHistory();
+}
+
+/* ============ Bill tab rendering ============ */
+function renderBillTab(){
+  const wrap = document.getElementById('bill-item-list');
+  wrap.innerHTML = '';
+  items.forEach(it=>{
+    const qty = currentBill[it.id] || 0;
+    const card = document.createElement('div');
+    card.className = 'item-card' + (qty>0 ? ' has-qty' : '');
+    const lowStock = it.stock <= 5;
+    card.innerHTML = `
+      <div class="item-info">
+        <div class="name">${escapeHtml(it.name)}</div>
+        <div class="meta">₹${it.price} · <span class="${lowStock?'low':''}">${it.stock} ${escapeHtml(it.unit)} left</span></div>
+      </div>
+      <div class="qty-stepper">
+        <button onclick="changeQty('${it.id}', -1)">−</button>
+        <span class="qty-val">${qty}</span>
+        <button onclick="changeQty('${it.id}', 1)">+</button>
+      </div>
+    `;
+    wrap.appendChild(card);
+  });
+  updateBillFooter();
+}
+
+function changeQty(id, delta){
+  const cur = currentBill[id] || 0;
+  const next = Math.max(0, cur + delta);
+  if(next === 0) delete currentBill[id];
+  else currentBill[id] = next;
+  renderBillTab();
+}
+
+function billTotal(){
+  let total = 0;
+  Object.keys(currentBill).forEach(id=>{
+    const item = items.find(i=>i.id===id);
+    if(item) total += item.price * currentBill[id];
+  });
+  return total;
+}
+
+function updateBillFooter(){
+  const footer = document.getElementById('bill-footer');
+  const total = billTotal();
+  const hasItems = Object.keys(currentBill).length > 0;
+  footer.classList.toggle('show', hasItems);
+  document.getElementById('footer-total').textContent = '₹' + total;
+}
+
+function generateBill(){
+  const entries = Object.keys(currentBill).map(id=>{
+    const item = items.find(i=>i.id===id);
+    return { id, name:item.name, price:item.price, qty:currentBill[id] };
+  });
+  if(entries.length===0) return;
+
+  // deduct stock
+  entries.forEach(e=>{
+    const item = items.find(i=>i.id===e.id);
+    if(item) item.stock = Math.max(0, item.stock - e.qty);
+  });
+  saveItems();
+
+  const total = entries.reduce((s,e)=>s + e.price*e.qty, 0);
+  const now = new Date();
+  const bill = {
+    billId: 'SK' + now.getTime().toString().slice(-6),
+    dateISO: now.toISOString(),
+    items: entries,
+    total
+  };
+  bills.unshift(bill);
+  saveBills();
+
+  currentBill = {};
+  renderBillTab();
+  renderStockTab();
+  renderTodayStats();
+  showReceipt(bill);
+}
+
+/* ============ Receipt modal ============ */
+function showReceipt(bill){
+  const d = new Date(bill.dateISO);
+  const dateStr = d.toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'});
+  const timeStr = d.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+  let rows = bill.items.map(e=>`
+    <div class="r-row"><span>${escapeHtml(e.name)} x${e.qty}</span><span>₹${e.price*e.qty}</span></div>
+  `).join('');
+  document.getElementById('receipt-content').innerHTML = `
+    <h3>Senthil Kumaran Tea Shop</h3>
+    <div class="sub">Avadi, Chennai · ${dateStr} ${timeStr}</div>
+    <div class="divider"></div>
+    <div class="r-row"><span>Bill No.</span><span>${bill.billId}</span></div>
+    <div class="divider"></div>
+    ${rows}
+    <div class="divider"></div>
+    <div class="r-total"><span>TOTAL</span><span>₹${bill.total}</span></div>
+    <div class="receipt-pay">
+      <div class="pay-label">Scan to pay ₹${bill.total}</div>
+      <div id="qr-box"></div>
+      <div class="upi-id">${UPI_ID}</div>
+    </div>
+    <div class="r-foot">Thank you, visit again!</div>
+    <button class="receipt-close" onclick="closeReceipt()">Done</button>
+  `;
+  document.getElementById('receipt-overlay').classList.add('show');
+  renderPaymentQR(bill);
+}
+
+function renderPaymentQR(bill){
+  const box = document.getElementById('qr-box');
+  if(!box) return;
+  box.innerHTML = '';
+  const upiLink = 'upi://pay?pa=' + encodeURIComponent(UPI_ID)
+    + '&pn=' + encodeURIComponent(PAYEE_NAME)
+    + '&am=' + encodeURIComponent(bill.total)
+    + '&cu=INR'
+    + '&tn=' + encodeURIComponent('Bill ' + bill.billId);
+  if(typeof QRCode !== 'undefined'){
+    new QRCode(box, {
+      text: upiLink,
+      width: 150,
+      height: 150,
+      colorDark: '#241A12',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  } else {
+    box.textContent = 'QR unavailable offline';
+  }
+}
+function closeReceipt(){
+  document.getElementById('receipt-overlay').classList.remove('show');
+}
+
+/* ============ Stock tab ============ */
+function renderStockTab(){
+  const wrap = document.getElementById('stock-list');
+  wrap.innerHTML = '';
+  items.forEach(it=>{
+    const low = it.stock <= 5;
+    const row = document.createElement('div');
+    row.className = 'stock-row';
+    row.innerHTML = `
+      <div class="stock-row-top">
+        <div>
+          <div class="name">${escapeHtml(it.name)}</div>
+          <div class="cat">${escapeHtml(it.category)}</div>
+        </div>
+        <span class="stock-badge ${low?'low':'ok'}">${it.stock} ${escapeHtml(it.unit)}</span>
+      </div>
+      <div class="stock-row-controls">
+        <div class="restock-btns">
+          <button class="minus" onclick="restock('${it.id}', -1)">−1</button>
+          <button onclick="restock('${it.id}', 1)">+1</button>
+          <button onclick="restock('${it.id}', 10)">+10</button>
+        </div>
+        <div class="field-mini">
+          <label>Price ₹</label>
+          <input type="number" min="0" value="${it.price}" onchange="updatePrice('${it.id}', this.value)">
+        </div>
+        <div class="field-mini">
+          <label>Unit</label>
+          <input type="text" value="${escapeHtml(it.unit)}" onchange="updateUnit('${it.id}', this.value)">
+        </div>
+        <button class="delete-item" onclick="deleteItem('${it.id}')">Remove</button>
+      </div>
+    `;
+    wrap.appendChild(row);
+  });
+}
+
+function restock(id, delta){
+  const item = items.find(i=>i.id===id);
+  if(!item) return;
+  item.stock = Math.max(0, item.stock + delta);
+  saveItems();
+  renderStockTab();
+  renderBillTab();
+}
+function updatePrice(id, val){
+  const item = items.find(i=>i.id===id);
+  if(!item) return;
+  const n = parseFloat(val);
+  item.price = isNaN(n) ? item.price : n;
+  saveItems();
+  renderBillTab();
+}
+function updateUnit(id, val){
+  const item = items.find(i=>i.id===id);
+  if(!item) return;
+  item.unit = val || item.unit;
+  saveItems();
+  renderBillTab();
+}
+function deleteItem(id){
+  if(!confirm('Remove this item from your list?')) return;
+  items = items.filter(i=>i.id!==id);
+  delete currentBill[id];
+  saveItems();
+  renderStockTab();
+  renderBillTab();
+}
+function addItem(){
+  const name = document.getElementById('new-name').value.trim();
+  const cat = document.getElementById('new-cat').value.trim() || 'General';
+  const price = parseFloat(document.getElementById('new-price').value) || 0;
+  const unit = document.getElementById('new-unit').value.trim() || 'units';
+  if(!name){ alert('Please enter an item name.'); return; }
+  const id = name.toLowerCase().replace(/[^a-z0-9]+/g,'-') + '-' + Date.now().toString().slice(-4);
+  items.push({ id, name, category:cat, price, stock:0, unit });
+  saveItems();
+  document.getElementById('new-name').value = '';
+  document.getElementById('new-cat').value = '';
+  document.getElementById('new-price').value = '';
+  document.getElementById('new-unit').value = '';
+  renderStockTab();
+  renderBillTab();
+}
+
+/* ============ Shop tab: history + stats ============ */
+function renderHistory(){
+  const wrap = document.getElementById('history-list');
+  if(bills.length===0){
+    wrap.innerHTML = '<div class="empty-note">No bills yet. Generate your first bill from the Bill tab.</div>';
+    return;
+  }
+  wrap.innerHTML = bills.slice(0,15).map(b=>{
+    const d = new Date(b.dateISO);
+    const dateStr = d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'});
+    const timeStr = d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    return `<div class="history-row">
+      <span><span class="id">#${b.billId}</span> · ${dateStr} ${timeStr}</span>
+      <span class="amt">₹${b.total}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderTodayStats(){
+  const todayKey = new Date().toDateString();
+  const todaysBills = bills.filter(b=> new Date(b.dateISO).toDateString() === todayKey);
+  const revenue = todaysBills.reduce((s,b)=>s+b.total,0);
+  document.getElementById('today-stats').innerHTML = `
+    <div class="stat-chip"><span class="n">${todaysBills.length}</span><span class="l">Bills today</span></div>
+    <div class="stat-chip"><span class="n">₹${revenue}</span><span class="l">Revenue today</span></div>
+  `;
+}
+
+/* ============ CSV export ============ */
+function exportCSV(){
+  if(bills.length===0){ alert('No bills to export yet.'); return; }
+  const header = ['Bill No','Date','Time','Items','Total (₹)'];
+  const rows = bills.map(b=>{
+    const d = new Date(b.dateISO);
+    const dateStr = d.toLocaleDateString('en-IN');
+    const timeStr = d.toLocaleTimeString('en-IN');
+    const itemsStr = b.items.map(e=>`${e.name} x${e.qty}`).join('; ');
+    return [b.billId, dateStr, timeStr, itemsStr, b.total];
+  });
+  const csv = [header, ...rows]
+    .map(r => r.map(f => `"${String(f).replace(/"/g,'""')}"`).join(','))
+    .join('\r\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const stamp = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `senthil-kumaran-tea-shop-bills-${stamp}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* ============ Utils ============ */
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, m => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[m]));
+}
+
+/* ============ Init ============ */
+renderBillTab();
+renderStockTab();
+renderTodayStats();
+renderHistory();
+bootAuth();
+</script>
+
+</body>
+</html>
